@@ -1,4 +1,4 @@
-module github.com/goodhosts/hostsfile
+module github.com/0x5a17ed/hostsfile
 
 go 1.21
 
