@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -98,19 +99,9 @@ func (h *Hosts) Load() error {
 	return scanner.Err()
 }
 
-// Flush writes to the file located at Path the contents of Lines in a hostsfile format
-func (h *Hosts) Flush() error {
-	if err := h.preFlush(); err != nil {
-		return err
-	}
-
-	file, err := os.Create(h.Path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	w := bufio.NewWriter(file)
+// FlushWriter writes the contents of Lines in the hostsfile format to the given [io.Writer]
+func (h *Hosts) FlushWriter(wr io.Writer) error {
+	w := bufio.NewWriter(wr)
 	for _, line := range h.Lines {
 		if _, err := fmt.Fprintf(w, "%s%s", line.ToRaw(), eol); err != nil {
 			return err
@@ -126,6 +117,21 @@ func (h *Hosts) Flush() error {
 	}
 
 	return h.Load()
+}
+
+// Flush writes to the file located at Path the contents of Lines in a hostsfile format
+func (h *Hosts) Flush() error {
+	if err := h.preFlush(); err != nil {
+		return err
+	}
+
+	file, err := os.Create(h.Path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = file.Close()}()
+
+	return h.FlushWriter(file)
 }
 
 // AddRaw takes a line from a hosts file and parses/adds the HostsLine
